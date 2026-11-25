@@ -1,106 +1,102 @@
 # Premium Billing and Collections: Operations Dashboard
-
-A one-page Power BI dashboard that shows how premium bills are paid, how late they run, and why. It is built to support Operations decisions in billing and collections: where the backlog sits, which bills breach the payment SLA, and which root causes to fix first.
-
 <img width="1767" height="861" alt="Screenshot 2026-11-24 225925" src="https://github.com/user-attachments/assets/ac8a0aee-fe62-4d97-82b2-823ea09f6a3d" />
 
+## Why I built this
 
-## Business problem
+I wanted to show how I approach an operations problem, not just how I build a chart. Billing and collections is a good example because late payments create real work for an insurer: reminders, re-billing, follow-up calls, and delayed cash.
 
-Late premium payments create rework, collection effort, and cash-flow delays. Operations leaders need to see how many bills are late, how late they are, and which causes drive most of the lateness, so they can prioritize process fixes instead of chasing individual bills.
+The question I set out to answer: **how many premium bills are paid late, how late, and what is causing it?** I also wanted the answer to end in a recommendation an Operations leader could act on.
 
-## Key findings
+## The problem
+
+Operations leaders can see that some bills are late, but they need to know three things to decide what to fix:
+
+1. How big is the problem?
+2. How late are the bills (a few days, or months)?
+3. Which causes drive most of it?
+
+## How I solved it
+
+### Step 1: Find the data
+Insurers do not publish billing data, so no public dataset had bills, due dates, and payment dates. I found a public UK home-insurance dataset with real policy details (premium, start date, status, payment method, mid-term changes). I used those as the foundation.
+
+### Step 2: Build the missing billing layer
+On top of 5,000 real policies, I generated 4 quarterly bills each (20,000 total), with due dates, payment dates, and late reasons. I linked lateness to real fields, so the simulation follows a logic you can challenge:
+- Policies without direct debit are more likely to be late.
+- Policies with a mid-term adjustment are more likely to need re-billing.
+- Lapsed or cancelled policies are more likely to be late.
+
+The script uses a fixed random seed, so the data is reproducible (`data-prep/make_billing.py`).
+
+### Step 3: Define the KPIs before charting
+I wrote down what each measure means in plain words before building anything (`docs/kpi_dictionary.md`): past due %, aging buckets, cycle time, SLA breach %, backlog, and rework %. This stops people arguing about numbers later.
+
+### Step 4: Build the dashboard in Power BI
+I calculated each KPI with DAX (`docs/dax_measures.md`) and built one page: KPI cards, aging buckets, cycle time over time, past-due % by payment method, and a Pareto chart that ranks the causes of late payment.
+
+### Step 5: Check the numbers
+I rebuilt the key counts in Excel pivot tables and compared them with the dashboard, so I could trust what it showed.
+
+### Problems I hit and how I fixed them
+
+| Problem | What I did |
+|---|---|
+| The source file mixes date formats (day/month/year and month/day/year) | Parsed each column with its own format |
+| Cycle time dropped sharply in the last month | Unpaid bills have no payment time yet, so only quick payers counted. I excluded the last month and documented why |
+| The "Current" bucket (about three quarters of bills) hid the late buckets | Filtered it out of the aging chart so the late buckets are visible |
+| The Pareto showed one bar for all late bills | A DAX measure ignored the chart's grouping. I rewrote it to count rows per reason |
+
+## What I found
 
 | Measure | Result |
 |---|---|
-| Total bills analyzed | 20,000 (5,000 policies x 4 quarterly bills) |
-| Past due | 24.85% |
-| SLA breach (paid after 30 days) | 13.18% |
-| Average cycle time (bill to payment) | 22.75 days |
-| Rework rate | 4.41% |
-| Open bills (backlog) | 106 |
+| Bills analyzed | 20,000 |
+| Paid late (past due) | 24.85% |
+| Took longer than 30 days (SLA breach) | 13.18% |
+| Average days from bill to payment | 22.75 |
+| Bills needing correction (rework) | 4.41% |
+| Bills still unpaid | 106 |
 
-- **Direct debit is the biggest lever.** Policies without direct debit were late about 35% of the time, versus about 19% for other direct-debit types and about 12% for pure direct debit.
-- **"No direct debit set up" is the top root cause** in the Pareto analysis, followed by customer inattention and incorrect billing information.
-- **Most lateness is short.** About three quarters of bills are current, and nearly all late bills fall in the 1-30 day bucket, so this is a reminder-and-process problem more than a collections problem.
-- **Mid-term adjustments create re-billing.** "Mid-term adjustment re-bill" is the smallest cause by volume, but it is a pure rework driver.
+- **Direct debit is the biggest lever.** Bills without direct debit were late about 35% of the time, versus about 12% with direct debit.
+- **Most late bills are only slightly late**, so this is mainly a reminder and process problem.
+- **Top causes:** no direct debit set up, customer inattention, incorrect billing information.
 
-See [`docs/leadership_summary.md`](docs/leadership_summary.md) for the one-page summary with recommendations.
+## What I recommend
 
-## About the data
+1. Encourage direct debit at policy set-up and renewal.
+2. Send automated reminders before the due date, with a person reviewing unusual cases.
+3. Check billing information at intake to reduce corrections.
 
-**Real data.** Policy attributes come from a public UK home-insurance dataset (256,136 policies, 2007-2012, originally on Kaggle as "Home Insurance" by ycanario). Real fields used: policy number, annual premium, cover start date, policy status, property type code, payment method (direct debit or not), and mid-term adjustment dates.
+## About the data (please read)
 
-**Simulated data.** Insurers do not publish billing or collections data because it is private customer financial information. I generated the billing layer on top of the real policies: quarterly bills, due dates, payment dates, open/paid status, and late-payment reasons.
+- **Real:** policy details from a public UK home-insurance dataset.
+- **Simulated:** bills, due dates, payment dates, and late reasons.
+- **So:** this project shows my method, not the performance of a real insurer. The late reasons are assumptions.
 
-**How the simulation works.** Late-payment probability depends on real policy attributes: non-direct-debit policies are more likely to be late, policies with mid-term adjustments are more likely to be re-billed, and lapsed or cancelled policies are more likely to be late. A fixed random seed (42) makes the data reproducible. See [`data-prep/make_billing.py`](data-prep/make_billing.py).
+Raw dataset: https://github.com/decodedco/datastore/raw/master/data/home-insurance.zip
 
-**What this project demonstrates.** The analysis method: KPI definitions, validation, root-cause (Pareto) analysis, and recommendations. The findings are illustrative and do not describe the performance of any real insurer. Late reasons and rework flags are simulated assumptions, not observed causes.
+## Assumptions
 
-Raw dataset (public copy): https://github.com/decodedco/datastore/raw/master/data/home-insurance.zip
+- The payment target (SLA) is 30 days from bill date to payment, and the due date is 21 days after the bill date. A real billing team would confirm these.
+- The data ends on 31 December 2011. Bills unpaid on that date count as open.
 
-## Method
+## What I would do with real data
 
-1. Generated premium bills from real policies (`data-prep/make_billing.py`).
-2. Loaded `data/premium_bills.csv` into Power BI and set data types in Power Query.
-3. Added calculated columns in DAX: `cycle_days`, `days_past_due`, `aging_bucket`, `aging_sort`, `sla_breach`.
-4. Wrote DAX measures for each KPI ([`docs/dax_measures.md`](docs/dax_measures.md)).
-5. Built the dashboard: KPI cards, aging chart, cycle-time trend, past-due % by payment method, Pareto of late reasons, and slicers for policy status and payment method.
-6. Validated the numbers with Excel pivot tables (see Validation).
+- Replace the simulated reasons with real codes from dispute logs, returned payments, and collector notes.
+- Confirm the SLA and due-date rules with the billing team.
+- Pilot reminders on one group of policies and track the change in past-due %.
 
-## Validation
-
-| Check | Dashboard | Excel pivot | Match |
-|---|---|---|---|
-| Total bills | 20,000 | | |
-| Open bills (backlog) | 106 | | |
-| Bills by late reason (top cause) | | | |
-| Bills by aging bucket | | | |
-
-## Definitions and assumptions
-
-- The payment SLA is **30 days from bill date to payment**. Due dates are 21 days after the bill date. These are assumptions for this project, to be confirmed with the real billing team.
-- The snapshot date is **31 December 2011**. Bills unpaid at that date are counted as open.
-- The cycle-time chart excludes the last month because open bills have no cycle time yet, which would create a false dip.
-- Property type is a numeric code in the source dataset. Its meaning is not documented there, so it is not used as a slicer.
-
-Full definitions: [`docs/kpi_dictionary.md`](docs/kpi_dictionary.md).
-
-## Repository structure
+## Files
 
 ```
-billing-ops-dashboard/
-├── README.md
-├── data/
-│   └── premium_bills.csv          (20,000 simulated bills on real policies)
-├── data-prep/
-│   └── make_billing.py            (generates the billing layer, seed 42)
-├── dashboard/
-│   ├── billing_dashboard.pbix     (Power BI file)
-│   └── dashboard_screenshot.png
-└── docs/
-    ├── kpi_dictionary.md
-    ├── dax_measures.md
-    └── leadership_summary.md
+data/premium_bills.csv        the 20,000 bills
+data-prep/make_billing.py     how the bills were generated
+dashboard/                    Power BI file and screenshot
+docs/kpi_dictionary.md        what each KPI means
+docs/dax_measures.md          the formulas
+docs/leadership_summary.md    one-page summary
 ```
-
-## How to reproduce
-
-1. Download and unzip the raw dataset (link above) to get `home_insurance.csv`.
-2. Run `python make_billing.py home_insurance.csv premium_bills.csv`.
-3. Open `dashboard/billing_dashboard.pbix` in Power BI Desktop and point it to your `premium_bills.csv` if prompted.
-
-## Limitations
-
-- Billing events, late reasons, and rework flags are simulated, so root-cause shares reflect my assumptions.
-- Real billing data would include dispute logs, returned-payment codes, and collector notes. With those, I would replace the simulated reasons and re-check the Pareto.
-- Only one process (quarterly premium billing) is covered.
-
-## Related work
-
-- Process documentation pack (SIPOC, swim lanes, RACI): _link when published_
-- Copilot use-case specification for automated payment reminders: _link when published_
 
 ## Author
 
-Abhigna Valambatla. Tools: Power BI, DAX, Power Query, Excel, Python.
+Abhigna Valambatla. Power BI, DAX, Excel, Python.
