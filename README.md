@@ -2,7 +2,8 @@
 
 A one-page Power BI dashboard that shows how premium bills are paid, how late they run, and why. It is built to support Operations decisions in billing and collections: where the backlog sits, which bills breach the payment SLA, and which root causes to fix first.
 
-![Dashboard](dashboard/dashboard_screenshot.png)
+<img width="1767" height="861" alt="Screenshot 2026-11-24 225925" src="https://github.com/user-attachments/assets/ac8a0aee-fe62-4d97-82b2-823ea09f6a3d" />
+
 
 ## Business problem
 
