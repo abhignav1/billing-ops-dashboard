@@ -86,17 +86,6 @@ Raw dataset: https://github.com/decodedco/datastore/raw/master/data/home-insuran
 - Confirm the SLA and due-date rules with the billing team.
 - Pilot reminders on one group of policies and track the change in past-due %.
 
-## Files
-
-```
-data/premium_bills.csv        the 20,000 bills
-data-prep/make_billing.py     how the bills were generated
-dashboard/                    Power BI file and screenshot
-docs/kpi_dictionary.md        what each KPI means
-docs/dax_measures.md          the formulas
-docs/leadership_summary.md    one-page summary
-```
-
 ## Author
 
 Abhigna Valambatla. Power BI, DAX, Excel, Python.
